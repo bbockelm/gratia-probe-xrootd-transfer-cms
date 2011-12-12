@@ -142,7 +142,7 @@ def get_se():
     return config_se
 
 def get_rpm_version():
-    cmd = "rpm -q gratia-probe-xrootd-transfer --queryformat '%{VERSION}-%{RELEASE}'"
+    cmd = "rpm -q gratia-probe-xrootd-transfer-cms --queryformat '%{VERSION}-%{RELEASE}'"
     fd = os.popen(cmd)
     output = fd.read()
     if fd.close():
@@ -211,7 +211,7 @@ class GratiaHandler(object):
 
     def handle(self, packet, addr):
         #DebugPrint(4, "GratiaHandler processed message: %s" %  packet)
-        print packet
+        #print packet
         if self.stop:
             raise self.stop_exception
         found_begin = False
@@ -298,7 +298,7 @@ class GratiaHandler(object):
 
         site_name = self.siteMapper(evt['server_domain'])
         if site_name:
-            probename = 'xrootd-transfer:%s' % evt['server_domain']
+            probename = 'xrootd-transfer-cms:%s' % evt['server_domain']
         else:
             site_name = GratiaCore.Config.get_SiteName()
             probename = GratiaCore.Config.get_MeterName()
@@ -411,7 +411,7 @@ def parse_opts():
         "messages.  Overridden by Gratia ProbeConfig.", type="int",
         default=3334, dest="port")
     parser.add_option("--gratia_config", help="Location of the Gratia config;" \
-        " defaults to /etc/gratia/xrootd-transfer/ProbeConfig",
+        " defaults to /etc/gratia/xrootd-transfer-cms/ProbeConfig",
         dest="gratia_config")
     parser.add_option("-b", "--bind", help="Listen for messages on a " \
         "specific address; defaults to 0.0.0.0.  Overridden by Gratia " \
@@ -439,7 +439,7 @@ def parse_opts():
         SLEEP_TIME = opts.report_period*60
 
     # Initialize logging
-    logfile = "/var/log/gratia/xrootd-transfer.log"
+    logfile = "/var/log/gratia/xrootd-transfer-cms.log"
     if opts.logfile:
         logfile = opts.logfile
     path, _ = os.path.split(logfile)
@@ -470,7 +470,7 @@ def parse_opts():
     if opts.gratia_config and os.path.exists(opts.gratia_config):
         gratia_config = opts.gratia_config
     else:
-        tmp = "/etc/gratia/xrootd-transfer/ProbeConfig"
+        tmp = "/etc/gratia/xrootd-transfer-cms/ProbeConfig"
         if os.path.exists(tmp):
             gratia_config = tmp
     if not gratia_config:
@@ -504,7 +504,7 @@ def main():
         # to alert the user of potential errors.
         test_udp_socket(port=opts.port, bind=opts.bind)
         # Test to see if the pidfile is writable.
-        pidfile = "/var/run/gratia-probe-xrootd-transfer.pid"
+        pidfile = "/var/run/xrootd-transfer-cms.pid"
         open(pidfile, 'w').close()
         daemonize(pidfile)
         # Must re-initialize here because we changed processes and lost

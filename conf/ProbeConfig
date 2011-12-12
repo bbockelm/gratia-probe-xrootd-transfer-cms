@@ -18,7 +18,7 @@
     SuppressUnknownVORecords="0"
     SuppressNoDNRecords="0"
     SuppressGridLocalRecords="0"
-    EnableProbe="1"
+    EnableProbe="0"
 
     Title3="Tuning parameter"
 
@@ -59,7 +59,7 @@
     WorkingFolder="/var/lib/gratia/tmp"
     LogFolder="/var/log/gratia"
 
-    XrootdVersion="3.1.0-rc1"
+    XrootdVersion="3.1.0"
     SiteMapper="/etc/gratia/xrootd-transfer-cms/SiteHostMapfile"
 
 />

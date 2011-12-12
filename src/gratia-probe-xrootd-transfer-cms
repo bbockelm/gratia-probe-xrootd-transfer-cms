@@ -1,17 +1,17 @@
 #!/bin/sh
 #
-# Startup script for xrd_transfer_probe
+# Startup script for xrootd-transfer-cms
 #
 # chkconfig: 345 85 15
 # description: Gratia transfer accounting for an Xrootd SE
-# processname: xrd_transfer_probe
+# processname: xrootd-transfer-cms
 
 # Source function library.
 . /etc/rc.d/init.d/functions
 
-exec="/usr/share/gratia/xrootd-transfer/gratia-xrootd-transfer"
-prog="gratia-xrootd-transfer"
-config="/etc/gratia/xrootd-transfer/ProbeConfig"
+exec="/usr/share/gratia/xrootd-transfer-cms/xrootd-transfer-cms"
+prog="xrootd-transfer-cms"
+config="/etc/gratia/xrootd-transfer-cms/ProbeConfig"
 
 [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
