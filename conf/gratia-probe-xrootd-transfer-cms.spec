@@ -4,7 +4,7 @@
 Name:               gratia-probe-%{probe_name}
 Summary:            Gratia probe for CMS xrootd-transfer accounting
 Group:              Applications/System
-Version:            1.09
+Version:            1.11
 Release:            1
 License:            GPL
 Group:              Applications/System
@@ -57,3 +57,9 @@ sed -i "s#@PROBE_HOST@#%{meter_name}#" %{_sysconfdir}/gratia/%{probe_name}/Probe
 %config(noreplace) %{_sysconfdir}/gratia/%{probe_name}/ProbeConfig
 
 %changelog
+* Mon Apr 09 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.11-1
+- Fix regexp.
+
+* Thu Apr 05 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.10-1
+- Make probe name configurable from SiteHostMapfile.
+

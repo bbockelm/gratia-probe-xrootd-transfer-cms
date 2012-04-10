@@ -296,9 +296,10 @@ class GratiaHandler(object):
         else:
             r.VOName("unknown")
 
-        site_name = self.siteMapper(evt['server_domain'])
+        site_name, probename = self.siteMapper(evt['server_domain'])
         if site_name:
-            probename = 'xrootd-transfer-cms:%s' % evt['server_domain']
+            if not probename:
+                probename = 'xrootd-transfer-cms:%s' % evt['server_domain']
         else:
             site_name = GratiaCore.Config.get_SiteName()
             probename = GratiaCore.Config.get_MeterName()
@@ -365,7 +366,7 @@ def sendToGratia_child(info, record_list):
 
     os._exit(0)
 
-line_re = re.compile('^([\w.-]+?)\s+(\S+)')
+line_re = re.compile('^([\w:.\-=]+?)\s+(\S+)')
 split_re = re.compile('\s*,?\s*')
 class SiteMapper(object):
 
@@ -381,6 +382,11 @@ class SiteMapper(object):
             if not m:
                 continue
             site, host_info = m.groups()
+            site_info = site.split("=")
+            if len(site_info) == 2:
+                site = (site_info[0], site_info[1])
+            else:
+                site = (site, None)
             for host_re_string in split_re.split(host_info):
                 try:
                     host_re = re.compile(host_re_string)
@@ -396,7 +402,7 @@ class SiteMapper(object):
             if regexp.search(hostname):
                 self.host_to_site_cache[hostname] = site
                 return site
-        return None
+        return None, None
 
 def parse_opts():
     parser = optparse.OptionParser()

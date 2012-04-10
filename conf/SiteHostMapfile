@@ -1,10 +1,11 @@
 # Format:
-# SITENAME host_regexp[, host_regexp2[, host_regexp3[, ...]]]
+# SITENAME[=probename] host_regexp[, host_regexp2[, host_regexp3[, ...]]]
 
 Nebraska unl.edu
 UCSD t2.ucsd.edu
 Purdue rcac.purdue.edu
-GLOW hep.wisc.edu
+GLOW ^s17n\d+\.hep\.wisc\.edu$
+GLOW_Internal=xrootd-transfer-cms:internal.wisc.edu hep.wisc.edu
 DESY desy.de
 Vanderbilt accre.vanderbilt.edu
 T2_UK_SGrid_RALPP pp.rl.uc.uk
@@ -12,3 +13,5 @@ T1_UK_RAL gridpp.rl.ac.uk
 MIT mit.edu
 T2_IT_Bari ba.infn.it
 T2_IT_Pisa pi.infn.it
+USCMS-FNAL-WC1 fnal.gov
+UFL ufl.edu
