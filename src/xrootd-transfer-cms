@@ -119,12 +119,15 @@ def udp_server(data_handler, port=3334, bind="0.0.0.0"):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind((bind, port))
     buf = 64*1024
-    while 1:
-        data, addr = server_socket.recvfrom(buf)
-        try:
-            data_handler.handle(data, addr)
-        except:
-            gratia_log_traceback()
+    try:
+        while 1:
+            data, addr = server_socket.recvfrom(buf)
+            try:
+                data_handler.handle(data, addr)
+            except:
+                gratia_log_traceback()
+    finally:
+        server_socket.close()
 
 def test_udp_socket(port=3334, bind="0.0.0.0"):
     """
@@ -296,7 +299,7 @@ class GratiaHandler(object):
         else:
             r.VOName("unknown")
 
-        site_name, probename = self.siteMapper(evt['server_domain'])
+        site_name, probename = self.siteMapper(".".join([evt["server_host"], evt['server_domain']]))
         if site_name:
             if not probename:
                 probename = 'xrootd-transfer-cms:%s' % evt['server_domain']
