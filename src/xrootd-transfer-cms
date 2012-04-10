@@ -16,6 +16,7 @@ import traceback
 import logging.handlers
 
 import gratia.common.Gratia as Gratia
+import gratia.common.GratiaWrapper as GratiaWrapper
 import gratia.common.GratiaCore as GratiaCore
 from gratia.common.Gratia import DebugPrint
 
@@ -484,6 +485,26 @@ def parse_opts():
             gratia_config = tmp
     if not gratia_config:
         raise Exception("Unable to find a suitable ProbeConfig to use!")
+
+    # Do locking and check preconditions
+    GratiaCore.Config = GratiaCore.ProbeConfiguration(gratia_config)
+    GratiaWrapper.CheckPreconditions()
+    start_lock = time.time()
+    elapsed = 0
+    timeout = 120
+    while (elapsed < timeout):
+        try:
+            GratiaWrapper.ExclusiveLock()
+            break
+        except (SystemExit, KeyboardInterrupt):
+            raise
+        except Exception, e:
+            elapsed = time.time() - start_lock
+            print "Unable to acquire lock from old daemon after %d seconds." % int(elapsed)
+            if elapsed > timeout:
+                raise
+
+    # Real initialization.
     Gratia.Initialize(gratia_config)
     global ProbeConfig
     ProbeConfig = gratia_config
@@ -516,6 +537,9 @@ def main():
         pidfile = "/var/run/xrootd-transfer-cms.pid"
         open(pidfile, 'w').close()
         daemonize(pidfile)
+
+        # Daemonizing drops the lock.  Doh!  Reacquire
+        GratiaWrapper.ExclusiveLock()
         # Must re-initialize here because we changed processes and lost
         # the previous thread
         if not opts.print_only:
@@ -551,23 +575,23 @@ def main():
             return
 
     try:
-	while 1 == 1:
-	    try:
-	        DebugPrint(0, "Will send new Gratia data in %i seconds." % SLEEP_TIME)
-	        time.sleep(SLEEP_TIME)
-	    except KeyboardInterrupt, SystemExit:
-	        raise
-	    except Exception, e:
-	        gratia_log_traceback(lvl=1)
+        while 1 == 1:
+            try:
+                DebugPrint(0, "Will send new Gratia data in %i seconds." % SLEEP_TIME)
+                time.sleep(SLEEP_TIME)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except Exception, e:
+                gratia_log_traceback(lvl=1)
             except GratiaTimeout, gt:
                 gratia_log_traceback(lvl=1)
-	    try:
-	        DebugPrint(1, "Creating a new Xrootd Gratia report.")
-	        gratia_handler.summary()
-	    except KeyboardInterrupt, SystemExit:
-	        raise
-	    except Exception, e:
-	        gratia_log_traceback(lvl=1)
+            try:
+                DebugPrint(1, "Creating a new Xrootd Gratia report.")
+                gratia_handler.summary()
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except Exception, e:
+                gratia_log_traceback(lvl=1)
     finally:
         if not opts.print_only:
             gratia_handler.exit_summary()

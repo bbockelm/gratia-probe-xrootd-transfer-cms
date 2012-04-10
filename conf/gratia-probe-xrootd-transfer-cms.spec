@@ -4,14 +4,14 @@
 Name:               gratia-probe-%{probe_name}
 Summary:            Gratia probe for CMS xrootd-transfer accounting
 Group:              Applications/System
-Version:            1.11
+Version:            1.13
 Release:            1
 License:            GPL
 Group:              Applications/System
 URL:                http://github.com/bbockelm/gratia-probe-xrootd-transfer-cms
 Vendor:             The Open Science Grid <http://www.opensciencegrid.org/>
 
-Requires:           gratia-probe-common >= 1.09
+Requires:           gratia-probe-common >= 1.10-0.7
 
 # Default ProbeName
 %{!?meter_name: %global meter_name `hostname -f`}
@@ -57,6 +57,15 @@ sed -i "s#@PROBE_HOST@#%{meter_name}#" %{_sysconfdir}/gratia/%{probe_name}/Probe
 %config(noreplace) %{_sysconfdir}/gratia/%{probe_name}/ProbeConfig
 
 %changelog
+* Mon Apr 09 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.13-1
+- Make restarting work, even if old daemon is slow to exit.
+
+* Mon Apr 09 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.12-2
+- Fix requires statement.
+
+* Mon Apr 09 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.12-1
+- Use POSIX locking for restarts.
+
 * Mon Apr 09 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.11-1
 - Fix regexp.
 

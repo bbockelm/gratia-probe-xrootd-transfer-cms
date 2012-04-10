@@ -27,9 +27,12 @@ start() {
     fi
 
     echo -n $"Starting $prog: "
-    daemon $exec -d -r 10
+    # --force is added because the process may not have died.
+    # In such a case, because we use POSIX locking, the second daemon will wait
+    # for up to 18 seconds for the old one to exit; so, we want to force a start
+    # even if the old one exists.
+    daemon --force $exec -d -r 10
     retval=$?
-    sleep 1
     echo
     [ $retval -eq 0 ] && touch $lockfile
     return $retval
