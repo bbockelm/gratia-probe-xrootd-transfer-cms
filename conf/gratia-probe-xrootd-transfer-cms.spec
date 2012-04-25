@@ -4,7 +4,7 @@
 Name:               gratia-probe-%{probe_name}
 Summary:            Gratia probe for CMS xrootd-transfer accounting
 Group:              Applications/System
-Version:            1.13
+Version:            1.14
 Release:            1
 License:            GPL
 Group:              Applications/System
@@ -57,6 +57,9 @@ sed -i "s#@PROBE_HOST@#%{meter_name}#" %{_sysconfdir}/gratia/%{probe_name}/Probe
 %config(noreplace) %{_sysconfdir}/gratia/%{probe_name}/ProbeConfig
 
 %changelog
+* Tue Apr 24 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.14-1
+- Implement read count and filesize reporting.
+
 * Mon Apr 09 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.13-1
 - Make restarting work, even if old daemon is slow to exit.
 

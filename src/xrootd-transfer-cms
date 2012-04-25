@@ -192,6 +192,13 @@ not_float = [
     "server_host",
 ]
 
+def AddConsumableResource(usageRecord, description, value):
+    usageRecord.AppendToList(usageRecord.RecordData,
+        "ConsumableResource",
+        usageRecord.Description(description),
+        str(value))
+ 
+
 class GratiaHandler(object):
 
     def __init__(self, siteMapper):
@@ -279,6 +286,19 @@ class GratiaHandler(object):
         r.AdditionalInfo("Protocol", "xrootd")
         r.AdditionalInfo("IsNew", isNew)
         r.AdditionalInfo("File", evt["file_lfn"])
+
+        # Various read-size related quantities.
+        AddConsumableResource(r, "ReadVBytes", int(evt.setdefault("read_vector_bytes", 0)))
+        AddConsumableResource(r, "ReadBytes", int(evt.setdefault("read_single_bytes", 0)))
+        evt.setdefault("read_vector_operations", 0)
+        evt.setdefault("read_vector_average", 1)
+        evt.setdefault("read_single_operations", 0)
+        AddConsumableResource(r, "ReadCount", int(evt["read_single_operations"]))
+        AddConsumableResource(r, "ReadVCount", int(evt["read_vector_operations"]))
+        AddConsumableResource(r, "ReadVUnpackCount", int( \
+            evt["read_vector_operations"]*evt["read_vector_average"]))
+        AddConsumableResource(r, "FileSize", int(evt.setdefault("file_size", 0)))
+
         r.LocalJobId(evt["unique_id"])
         r.Grid("OSG")
         r.StartTime(evt["start_time"])
