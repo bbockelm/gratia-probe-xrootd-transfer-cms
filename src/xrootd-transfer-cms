@@ -291,12 +291,12 @@ class GratiaHandler(object):
         AddConsumableResource(r, "ReadVBytes", int(evt.setdefault("read_vector_bytes", 0)))
         AddConsumableResource(r, "ReadBytes", int(evt.setdefault("read_single_bytes", 0)))
         evt.setdefault("read_vector_operations", 0)
-        evt.setdefault("read_vector_average", 1)
+        evt.setdefault("read_vector_count_average", 1)
         evt.setdefault("read_single_operations", 0)
         AddConsumableResource(r, "ReadCount", int(evt["read_single_operations"]))
         AddConsumableResource(r, "ReadVCount", int(evt["read_vector_operations"]))
         AddConsumableResource(r, "ReadVUnpackCount", int( \
-            evt["read_vector_operations"]*evt["read_vector_average"]))
+            evt["read_vector_operations"]*evt["read_vector_count_average"]))
         AddConsumableResource(r, "FileSize", int(evt.setdefault("file_size", 0)))
 
         r.LocalJobId(evt["unique_id"])
