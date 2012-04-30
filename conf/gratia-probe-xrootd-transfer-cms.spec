@@ -4,7 +4,7 @@
 Name:               gratia-probe-%{probe_name}
 Summary:            Gratia probe for CMS xrootd-transfer accounting
 Group:              Applications/System
-Version:            1.14
+Version:            1.15
 Release:            1
 License:            GPL
 Group:              Applications/System
@@ -57,6 +57,9 @@ sed -i "s#@PROBE_HOST@#%{meter_name}#" %{_sysconfdir}/gratia/%{probe_name}/Probe
 %config(noreplace) %{_sysconfdir}/gratia/%{probe_name}/ProbeConfig
 
 %changelog
+* Mon Apr 30 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.15-1
+- Correct the ReadV unpack counts.
+
 * Tue Apr 24 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.14-1
 - Implement read count and filesize reporting.
 
