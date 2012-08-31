@@ -3,14 +3,11 @@
 import os
 import re
 import sys
-import sets
 import time
 import socket
-import struct
 import signal
 import logging
 import optparse
-import cStringIO
 import threading
 import traceback
 import logging.handlers
@@ -42,51 +39,53 @@ UMASK = 0
 WORKDIR = "/"
 
 if (hasattr(os, "devnull")):
-   REDIRECT_TO = os.devnull
+    REDIRECT_TO = os.devnull
 else:
-   REDIRECT_TO = "/dev/null"
+    REDIRECT_TO = "/dev/null"
 
 def daemonize(pidfile):
-   """Detach a process from the controlling terminal and run it in the
-   background as a daemon.
+    """Detach a process from the controlling terminal and run it in the
+    background as a daemon.
 
-   The detached process will return; the process controlling the terminal
-   will exit.
+    The detached process will return; the process controlling the terminal
+    will exit.
 
-   If the fork is unsuccessful, it will raise an exception; DO NOT CAPTURE IT.
+    If the fork is unsuccessful, it will raise an exception; DO NOT CAPTURE IT.
 
-   """
+    """
 
-   try:
-      pid = os.fork()
-   except OSError, e:
-      raise Exception("%s [%d]" % (e.strerror, e.errno))
+    try:
+        pid = os.fork()
+    except OSError, e:
+        raise Exception("%s [%d]" % (e.strerror, e.errno))
 
-   if (pid == 0):	# The first child.
-      os.setsid()
-      try:
-         pid = os.fork()	# Fork a second child.
-      except OSError, e:
-         raise Exception("%s [%d]" % (e.strerror, e.errno))
+    if (pid == 0):	# The first child.
+        os.setsid()
+        try:
+            pid = os.fork()	# Fork a second child.
+        except OSError, e:
+            raise Exception("%s [%d]" % (e.strerror, e.errno))
 
-      if (pid == 0):	# The second child.
-         os.chdir(WORKDIR)
-         os.umask(UMASK)
-         for i in range(3):
-             os.close(i)
-         os.open(REDIRECT_TO, os.O_RDWR|os.O_CREAT) # standard input (0)
-         os.dup2(0, 1)                        # standard output (1)
-         os.dup2(0, 2)                        # standard error (2)
-         try:
-             fp = open(pidfile, 'w')
-             fp.write(str(os.getpid()))
-             fp.close()
-         except:
-             pass
-      else:
-         os._exit(0)	# Exit parent (the first child) of the second child.
-   else:
-      os._exit(0)	# Exit parent of the first child.
+        if (pid == 0):	# The second child.
+            os.chdir(WORKDIR)
+            os.umask(UMASK)
+            for i in range(3):
+                os.close(i)
+            os.open(REDIRECT_TO, os.O_RDWR|os.O_CREAT) # standard input (0)
+            os.dup2(0, 1)                        # standard output (1)
+            os.dup2(0, 2)                        # standard error (2)
+            try:
+                fp = open(pidfile, 'w')
+                fp.write(str(os.getpid()))
+                fp.close()
+            except:
+                pass
+        else:
+            # Exit parent (the first child) of the second child.
+            os._exit(0) # pylint: disable=W0212
+    else:
+        # Exit parent of the first child.
+        os._exit(0)	# pylint: disable=W0212
 
 def file_handler(data_handler, input_file):
     cur_record = []
@@ -190,6 +189,7 @@ not_float = [
     "server_username",
     "server_domain",
     "server_host",
+    "app_info",
 ]
 
 def AddConsumableResource(usageRecord, description, value):
@@ -203,28 +203,23 @@ class GratiaHandler(object):
 
     def __init__(self, siteMapper):
         self.cur_host = None
-        self.stop = False
-        self.stop_exception = None
         self.lock = threading.Lock()
         self.events = {}
         self.handle = self.make_sync(self.handle)
-        self.summary = self.make_sync(self.summary)
         self.siteMapper = siteMapper
 
     def make_sync(self, fcn):
         def lock_fcn(*args, **kw):
-             self.lock.acquire()
-             try:
-                 return fcn(*args, **kw)
-             finally:
-                 self.lock.release()
+            self.lock.acquire()
+            try:
+                return fcn(*args, **kw)
+            finally:
+                self.lock.release()
         return lock_fcn
 
-    def handle(self, packet, addr):
+    def handle(self, packet, _): # pylint: disable=E0202
         #DebugPrint(4, "GratiaHandler processed message: %s" %  packet)
         #print packet
-        if self.stop:
-            raise self.stop_exception
         found_begin = False
         found_end = False
         new_evt = {}
@@ -247,6 +242,7 @@ class GratiaHandler(object):
                     pass
             new_evt[info[0]] = info[1]
         if not found_begin or not found_end:
+            DebugPrint(1, "Skipping malformed record.")
             return
         missing_attributes = False
         for attr in required_attrs:
@@ -256,6 +252,9 @@ class GratiaHandler(object):
         new_evt["unique_id"] = str(new_evt["unique_id"])
         if new_evt and not missing_attributes:
             self.events[new_evt["unique_id"]] = new_evt
+            DebugPrint(2, "Got record for %s (%s): %d read bytes." % (new_evt["unique_id"], new_evt["server_domain"], new_evt["read_bytes_at_close"]))
+        else:
+            DebugPrint(1, "Skipping record due to missing attributes.")
                 
 
     def send_gratia_record(self, evt):
@@ -284,8 +283,12 @@ class GratiaHandler(object):
         r.AdditionalInfo("Source", srcHost)
         r.AdditionalInfo("Destination", dstHost)
         r.AdditionalInfo("Protocol", "xrootd")
-        r.AdditionalInfo("IsNew", isNew)
+        # Note: Gratia client will accept a bool below, but the collector will throw
+        # a warning and set it to false.  Sigh.
+        r.AdditionalInfo("IsNew", int(isNew))
         r.AdditionalInfo("File", evt["file_lfn"])
+        if 'app_info' in evt and evt['app_info']:
+            r.AdditionalInfo("AppInfo", evt['app_info'])
 
         # Various read-size related quantities.
         AddConsumableResource(r, "ReadVBytes", int(evt.setdefault("read_vector_bytes", 0)))
@@ -331,15 +334,20 @@ class GratiaHandler(object):
         return site_name, probename, r
 
     def summary(self):
-        global timestamp
-        timestamp = time.time()
-        DebugPrint(2, "Sending %i records to Gratia." % len(self.events))
-        gratia_info = {}
-        for evt in self.events.values():
-            site_name, probename, r = self.send_gratia_record(evt)
-            records = gratia_info.setdefault((probename, site_name), [])
-            records.append(r)
-        self.events = {}
+        try:
+            self.lock.acquire()
+            global timestamp
+            timestamp = time.time()
+            DebugPrint(2, "Sending %i records to Gratia." % len(self.events))
+            gratia_info = {}
+            for evt in self.events.values():
+                site_name, probename, r = self.send_gratia_record(evt)
+                if r:
+                    records = gratia_info.setdefault((probename, site_name), [])
+                    records.append(r)
+            self.events = {}
+        finally:
+            self.lock.release()
         sendToGratia(gratia_info)
 
     def exit_summary(self):
@@ -354,8 +362,8 @@ def sendToGratia(gratia_info):
                 sendToGratia_child(info, records)
             except Exception, e:
                 log.exception(e)
-                os._exit(0)
-            os._exit(0)
+                os._exit(0) #pylint: disable=W0212
+            os._exit(0) #pylint: disable=W0212
         else: # I am parent
             try:
                 os.waitpid(pid, 0)
@@ -388,7 +396,7 @@ def sendToGratia_child(info, record_list):
         log.info("Sending record for probe %s in site %s to Gratia: %s."% \
             (probeName, site, GratiaCore.Send(record)))
 
-    os._exit(0)
+    os._exit(0) # pylint: disable=W0212
 
 line_re = re.compile('^([\w:.\-=]+?)\s+(\S+)')
 split_re = re.compile('\s*,?\s*')
@@ -453,7 +461,7 @@ def parse_opts():
     parser.add_option("-r", "--report_period", help="Time in minutes between" \
         " reports to Gratia.", dest="report_period", type="int")
 
-    opts, args = parser.parse_args()
+    opts, _ = parser.parse_args()
 
     # Expand our input paths:
     if opts.input:
@@ -476,7 +484,7 @@ def parse_opts():
     if path and not os.path.exists(path):
         os.makedirs(path)
     try:
-        fp = open(logfile, 'w')
+        _ = open(logfile, 'w')
     except Exception, e:
         raise Exception("Could not open %s-transfer logfile, %s, for " \
             "write.  Error: %s." % (XRD_NAME, logfile, str(e)))
@@ -573,26 +581,26 @@ def main():
 
     if not opts.input:
         try:
-	    udpserverthread = threading.Thread(target=udp_server,args=(gratia_handler, opts.port, opts.bind))
-	    udpserverthread.setDaemon(True)
-	    udpserverthread.setName("Gratia udp_server Thread")
-	    udpserverthread.start()
+            udpserverthread = threading.Thread(target=udp_server,args=(gratia_handler, opts.port, opts.bind))
+            udpserverthread.setDaemon(True)
+            udpserverthread.setName("Gratia udp_server Thread")
+            udpserverthread.start()
         finally:
             if not opts.print_only:
                 gratia_handler.exit_summary()
     else:
-        input = opts.input
+        input_filename = opts.input
         try:
-            fp = open(input, 'r')
+            fp = open(input_filename, 'r')
         except Exception, e:
             raise Exception("Could not open input file, %s, for read due to " \
-                "exception %s." % (input, str(e)))
+                "exception %s." % (input_filename, str(e)))
         try:
             file_handler(my_handler, fp)
         finally:
             if not opts.print_only:
                 gratia_handler.exit_summary()
-            return
+            sys.exit(1)
 
     try:
         while 1 == 1:
@@ -601,9 +609,9 @@ def main():
                 time.sleep(SLEEP_TIME)
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except Exception, e:
+            except GratiaCore.GratiaTimeout:
                 gratia_log_traceback(lvl=1)
-            except GratiaTimeout, gt:
+            except Exception:
                 gratia_log_traceback(lvl=1)
             try:
                 DebugPrint(1, "Creating a new Xrootd Gratia report.")
