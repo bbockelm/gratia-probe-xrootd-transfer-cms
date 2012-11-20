@@ -15,6 +15,7 @@ import logging.handlers
 import gratia.common.Gratia as Gratia
 import gratia.common.GratiaWrapper as GratiaWrapper
 import gratia.common.GratiaCore as GratiaCore
+from gratia.common.connect_utils import GratiaTimeout
 from gratia.common.Gratia import DebugPrint
 
 log = None
@@ -115,9 +116,12 @@ def gratia_log_traceback(lvl=0):
 def print_handler(obj, addr):
     DebugPrint(-1, '%s (from %s)' % (str(obj), '%s:%i' % addr))
 
+global_server_socket = -1
 def udp_server(data_handler, port=3334, bind="0.0.0.0"):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind((bind, port))
+    global global_server_socket
+    global_server_socket = server_socket.fileno()
     buf = 64*1024
     try:
         while 1:
@@ -351,12 +355,25 @@ class GratiaHandler(object):
         sendToGratia(gratia_info, wait)
 
     def exit_summary(self):
-        self.summary()
+        try:
+            if global_server_socket >= 0:
+                DebugPrint(4, "Closing UDP server socket %i" % global_server_socket)
+                os.close(global_server_socket)
+        except OSError:
+            pass
+        self.summary(False)
 
 def sendToGratia(gratia_info, wait=True):
     for info, records in gratia_info.items():
+        DebugPrint(2, "Forking process for probe %s; sending %i records to Gratia." % (info[0], len(records)))
         pid = os.fork()
         if pid == 0: # I am the child
+            try:
+                if global_server_socket >= 0:
+                    DebugPrint(4, "In child; closing UDP server socket %i" % global_server_socket)
+                    os.close(global_server_socket)
+            except OSError:
+                pass
             try:
                 signal.alarm(5*60)
                 sendToGratia_child(info, records)
@@ -384,6 +401,7 @@ def sendToGratia_child(info, record_list):
     # invocations are run exclusively.
     GratiaWrapper.ExclusiveLock()
     GratiaCore.Handshake()
+    DebugPrint(4, "For probe %s, sending %i records to Gratia." % (probeName, len(record_list)))
     try:
         GratiaCore.SearchOutstandingRecord()
     except Exception, e:
@@ -588,7 +606,7 @@ def main():
             udpserverthread.setDaemon(True)
             udpserverthread.setName("Gratia udp_server Thread")
             udpserverthread.start()
-        finally:
+        except:
             if not opts.print_only:
                 gratia_handler.exit_summary()
     else:
@@ -612,7 +630,7 @@ def main():
                 time.sleep(SLEEP_TIME)
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except GratiaCore.GratiaTimeout:
+            except GratiaTimeout:
                 gratia_log_traceback(lvl=1)
             except Exception:
                 gratia_log_traceback(lvl=1)
