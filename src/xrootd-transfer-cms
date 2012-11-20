@@ -375,12 +375,14 @@ def sendToGratia(gratia_info, wait=True):
             except OSError:
                 pass
             try:
-                signal.alarm(5*60)
-                sendToGratia_child(info, records)
-            except Exception, e:
-                log.exception(e)
+                try:
+                    signal.alarm(5*60)
+                    sendToGratia_child(info, records)
+                except Exception, e:
+                    log.exception(e)
+                    os._exit(0) #pylint: disable=W0212
+            finally:
                 os._exit(0) #pylint: disable=W0212
-            os._exit(0) #pylint: disable=W0212
         elif wait: # I am parent
             try:
                 os.waitpid(pid, 0)
