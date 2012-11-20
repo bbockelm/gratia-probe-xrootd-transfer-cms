@@ -4,7 +4,7 @@
 Name:               gratia-probe-%{probe_name}
 Summary:            Gratia probe for CMS xrootd-transfer accounting
 Group:              Applications/System
-Version:            1.15
+Version:            1.16
 Release:            1
 License:            GPL
 Group:              Applications/System
@@ -57,6 +57,10 @@ sed -i "s#@PROBE_HOST@#%{meter_name}#" %{_sysconfdir}/gratia/%{probe_name}/Probe
 %config(noreplace) %{_sysconfdir}/gratia/%{probe_name}/ProbeConfig
 
 %changelog
+* Tue Nov 20 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.16-1
+- Fix locking granularity.
+- Make restarts happen faster.
+
 * Mon Apr 30 2012 Brian Bockelman <bbockelm@cse.unl.edu> - 1.15-1
 - Correct the ReadV unpack counts.
 

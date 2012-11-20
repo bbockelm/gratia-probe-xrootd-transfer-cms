@@ -333,7 +333,7 @@ class GratiaHandler(object):
  
         return site_name, probename, r
 
-    def summary(self):
+    def summary(self, wait=True):
         try:
             self.lock.acquire()
             global timestamp
@@ -348,12 +348,12 @@ class GratiaHandler(object):
             self.events = {}
         finally:
             self.lock.release()
-        sendToGratia(gratia_info)
+        sendToGratia(gratia_info, wait)
 
     def exit_summary(self):
         self.summary()
 
-def sendToGratia(gratia_info):
+def sendToGratia(gratia_info, wait=True):
     for info, records in gratia_info.items():
         pid = os.fork()
         if pid == 0: # I am the child
@@ -364,7 +364,7 @@ def sendToGratia(gratia_info):
                 log.exception(e)
                 os._exit(0) #pylint: disable=W0212
             os._exit(0) #pylint: disable=W0212
-        else: # I am parent
+        elif wait: # I am parent
             try:
                 os.waitpid(pid, 0)
             except:
@@ -380,6 +380,9 @@ def sendToGratia_child(info, record_list):
         raise
     GratiaCore.Config.setSiteName(site)
     GratiaCore.Config.setMeterName(probeName)
+    # If we start/stop the probe frequently, we need to make sure the
+    # invocations are run exclusively.
+    GratiaWrapper.ExclusiveLock()
     GratiaCore.Handshake()
     try:
         GratiaCore.SearchOutstandingRecord()
