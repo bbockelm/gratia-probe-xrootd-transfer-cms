@@ -332,8 +332,9 @@ class GratiaHandler(object):
             if not probename:
                 probename = 'xrootd-transfer-cms:%s' % evt['server_domain']
         else:
+            DebugPrint(2, "Record from unknown server %s" % ".".join([evt["server_host"], evt['server_domain']]))
             site_name = GratiaCore.Config.get_SiteName()
-            probename = GratiaCore.Config.get_MeterName()
+            probename = GratiaCore.Config.get_MeterName() + "-unknown"
  
         return site_name, probename, r
 
@@ -386,8 +387,8 @@ def sendToGratia(gratia_info, wait=True):
         elif wait: # I am parent
             try:
                 os.waitpid(pid, 0)
-            except:
-                raise
+            except Exception, e:
+                log.exception(e)
         
 def sendToGratia_child(info, record_list):
     probeName, site = info
@@ -653,6 +654,7 @@ if __name__ == '__main__':
     except SystemExit:
         raise
     except:
+        log.exception(e)
         gratia_log_traceback()
         raise
 
